@@ -2,8 +2,8 @@ import streamlit as st
 from llm import get_ai_message
 
 
-st.set_page_config(page_title='전세사기피해 상담 챗봇', page_icon='🤖')
-st.title('🤖 전세사기피해 상담 챗봇')
+st.set_page_config(page_title='전세사기피해 상담 챗봇', page_icon='🍀')
+st.title('🍀 전세사기피해 상담 챗봇')
 
 if 'message_list' not in st.session_state:
     st.session_state.message_list = []
@@ -25,11 +25,14 @@ if user_question := st.chat_input(placeholder=placeholder): ## prompt 창
 
     ## AI 메시지 ##################################
     with st.spinner('답변 생성하는 중입니다.'):
-        ai_message = get_ai_message(user_question)
+        # ai_message = get_ai_message(user_question)
+
+        session_id = 'user-session'
+        ai_message = get_ai_message(user_question, session_id=session_id)
 
         with st.chat_message('ai'):
             ## AI 메시지 화면 출력
             st.write(ai_message)
         st.session_state.message_list.append({'role': 'ai', 'content': ai_message})
 
-print(f'after: {st.session_state.message_list}')
+# print(f'after: {st.session_state.message_list}')
