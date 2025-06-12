@@ -32,7 +32,7 @@ if user_question := st.chat_input(placeholder=placeholder): ## prompt 창
 
         with st.chat_message('ai'):
             ## AI 메시지 화면 출력
-            st.write(ai_message)
+            ai_message = st.write_stream(ai_message)
         st.session_state.message_list.append({'role': 'ai', 'content': ai_message})
 
 # print(f'after: {st.session_state.message_list}')
