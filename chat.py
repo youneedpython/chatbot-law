@@ -1,5 +1,5 @@
 import streamlit as st
-from llm import get_ai_message
+from llm import stream_ai_message
 
 
 st.set_page_config(page_title='전세사기피해 상담 챗봇', page_icon='🍀')
@@ -28,7 +28,7 @@ if user_question := st.chat_input(placeholder=placeholder): ## prompt 창
         # ai_message = get_ai_message(user_question)
 
         session_id = 'user-session'
-        ai_message = get_ai_message(user_question, session_id=session_id)
+        ai_message = stream_ai_message(user_question, session_id=session_id)
 
         with st.chat_message('ai'):
             ## AI 메시지 화면 출력
