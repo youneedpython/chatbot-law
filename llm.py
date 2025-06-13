@@ -6,23 +6,25 @@ from langchain.chains import (create_history_aware_retriever,
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.prompts import (ChatPromptTemplate, FewShotPromptTemplate,
+                                    MessagesPlaceholder, PromptTemplate)
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone
+
+from config import answer_examples
 
 
 ## 환경변수 읽어오기 =====================================================
 load_dotenv()
 
 ## LLM 생성 ==============================================================
-def get_llm(model='gpt-4o'):
-    llm = ChatOpenAI(model=model)
-    return llm
+def load_llm(model='gpt-4o'):
+    return ChatOpenAI(model=model)
 
 ## Embedding 설정 + Vector Store Index 가져오기 ===========================
-def get_database():
+def load_vectorstore():
     PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
 
     ## 임베딩 모델 지정
@@ -49,7 +51,7 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
 
 
 ## 히스토리 기반 리트리버 ===============================================
-def get_history_retriever(llm, retriever):
+def build_history_aware_retriever(llm, retriever):
     contextualize_q_system_prompt = (
         "Given a chat history and the latest user question "
         "which might reference context in the chat history, "
@@ -73,7 +75,22 @@ def get_history_retriever(llm, retriever):
     return history_aware_retriever
 
 
-def get_qa_prompt() :
+def build_few_shot_examples() -> str:
+    example_prompt = PromptTemplate.from_template("질문: {input}\n\n답변: {answer}")
+
+    few_shot_prompt = FewShotPromptTemplate(
+        examples=answer_examples,           ## 질문/답변 예시들 (전체 type은 list, 각 질문/답변 type은 dict)
+        example_prompt=example_prompt,      ## 단일 예시 포맷
+        prefix='다음 질문에 답변하세요 : ', ## 예시들 위로 추가되는 텍스트(도입부)
+        suffix="질문: {input}",             ## 예시들 뒤에 추가되는 텍스트(실제 사용자 질문 변수)
+        input_variables=["input"],          ## suffix에서 사용할 변수
+    )
+
+    formmated_few_shot_prompt = few_shot_prompt.format(input='{input}')
+
+    return formmated_few_shot_prompt
+
+def build_qa_prompt():
     system_prompt = (
     '''[identity]
 - 당신은 전세사기피해 법률 전문가입니다.
@@ -87,24 +104,7 @@ def get_qa_prompt() :
 '''    
     )
 
-
-    ## few-shot ####################################################
-    from langchain_core.prompts import PromptTemplate
-    from langchain_core.prompts import FewShotPromptTemplate
-    from config import answer_examples
-
-    example_prompt = PromptTemplate.from_template("질문: {input}\n\n답변: {answer}")
-
-    few_shot_prompt = FewShotPromptTemplate(
-        examples=answer_examples,           ## 질문/답변 예시들 (전체 type은 list, 각 질문/답변 type은 dict)
-        example_prompt=example_prompt,      ## 단일 예시 포맷
-        prefix='다음 질문에 답변하세요 : ', ## 예시들 위로 추가되는 텍스트(도입부)
-        suffix="Question: {input}",         ## 예시들 뒤에 추가되는 텍스트(실제 사용자 질문 변수)
-        input_variables=["input"],          ## suffix에서 사용할 변수
-    )
-
-    formmated_few_shot_prompt = few_shot_prompt.format(input='{input}')
-    ################################################################
+    formmated_few_shot_prompt = build_few_shot_examples()
 
     qa_prompt = ChatPromptTemplate.from_messages(
         [
@@ -123,15 +123,15 @@ def build_conversational_chain():
     LANGCHAIN_API_KEY = os.getenv('LANGCHAIN_API_KEY')
 
     ## LLM 모델 지정
-    llm = get_llm()
+    llm = load_llm()
 
     ## vector store에서 index 정보
-    database = get_database()
+    database = load_vectorstore()
     retriever = database.as_retriever(search_kwargs={'k': 2})
 
-    history_aware_retriever = get_history_retriever(llm, retriever)
+    history_aware_retriever = build_history_aware_retriever(llm, retriever)
 
-    qa_prompt = get_qa_prompt()
+    qa_prompt = build_qa_prompt()
     question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
     
     rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
