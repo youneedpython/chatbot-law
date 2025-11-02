@@ -1,16 +1,15 @@
-## Python
+# Exclude git and local configs
+.git
+.gitignore
+.vscode/
 __pycache__/
 *.pyc
-
-## Environment
 .env
 
-## Editor / System
-.vscode/
 
-
-## Elastic Beanstalk
+# EB internal logs and versions
 .elasticbeanstalk/*
 !.elasticbeanstalk/config.yml
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
+
