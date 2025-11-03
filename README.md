@@ -26,7 +26,7 @@ Streamlit UI 기반으로 사용자 입력을 받아, 법령 데이터와 LLM을
 
 | 환경 | 링크 |
 |------|------|
-| **AWS Elastic Beanstalk (Production)** | [http://chatbot-law-env.eba-jqza6c2z.ap-northeast-2.elasticbeanstalk.com/](http://chatbot-law-env.eba-jqza6c2z.ap-northeast-2.elasticbeanstalk.com/) |
+| **AWS Elastic Beanstalk (Production)** | **[http://chatbot-law-env.eba-jqza6c2z.ap-northeast-2.elasticbeanstalk.com/](http://chatbot-law-env.eba-jqza6c2z.ap-northeast-2.elasticbeanstalk.com/)** |
 | **Streamlit (Demo)** | [https://law-chatbot-mvp.streamlit.app](https://law-chatbot-mvp.streamlit.app) |
 
 ---

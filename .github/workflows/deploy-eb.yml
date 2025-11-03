@@ -3,70 +3,82 @@ name: Deploy to Elastic Beanstalk
 on:
   push:
     branches: [ "main" ]
+    ## 노트북/문서/README만 바뀌면 트리거 자체를 막기
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+      - 'notebooks/**'
+      - '**/*.ipynb'
+      - 'source_documents/**'
   workflow_dispatch:
 
-# 동시에 두 번 이상 배포 막기
+# 브랜치별 단일 실행 보장
 concurrency:
-  group: eb-deploy
+  group: eb-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   deploy:
+    ## 커밋 메시지에 [skip deploy]가 있으면 전체 스킵
+    if: ${{ !contains(github.event.head_commit.message, '[skip deploy]') }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Configure AWS credentials
-        # (A) 액세스 키 방식
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-2
-        # (B) OIDC 방식 쓸 땐 위 블록 대신 아래 주석 해제
-        # uses: aws-actions/configure-aws-credentials@v4
-        # with:
-        #   role-to-assume: arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>
-        #   aws-region: ap-northeast-2
 
-      # 선택: .dockerignore 없으면 생성해 업로드 용량 감소
-      - name: Ensure .dockerignore (optional)
-        run: |
-          if [ ! -f .dockerignore ]; then
-            echo ".git" >> .dockerignore
-            echo ".gitignore" >> .dockerignore
-            echo ".vscode" >> .dockerignore
-            echo "__pycache__/" >> .dockerignore
-            echo "*.pyc" >> .dockerignore
-            echo ".env" >> .dockerignore
-            echo "secret/" >> .dockerignore
-            echo ".elasticbeanstalk/logs/" >> .dockerignore
-            echo ".elasticbeanstalk/app_versions/" >> .dockerignore
-          fi
+      ## 변경 감지 (배포에 영향 있는 파일들만)
+      - name: Detect deploy-relevant changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            deploy:
+              - 'Dockerfile'
+              - 'Procfile'
+              - 'Dockerrun.aws.json'
+              - '.platform/**'
+              - '.ebextensions/**'
+              - '.elasticbeanstalk/**'
+              - 'requirements.txt'
+              - 'chat.py'
+              - 'llm.py'
+              - 'config.py'
+              - 'app/**'
+              - '.github/workflows/deploy-eb.yml'
 
-      # ✅ 여기서 ZIP 생성 (GitHub 러너에서)
+      - name: Skip deploy if no relevant changes
+        if: steps.changes.outputs.deploy != 'true'
+        run: echo "No deploy-relevant changes. Skipping Elastic Beanstalk deployment."
+
+      ## ❗ 가장 안전한 패키징: git에 추적되는 파일만 번들
       - name: Create application bundle (zip)
+        if: steps.changes.outputs.deploy == 'true'
         run: |
-          ZIP=app-${{ github.run_number }}.zip
-          # 불필요 파일/폴더 제외하고 압축
-          zip -r "$ZIP" . \
-            -x ".git/*" ".github/workflows/*" ".vscode/*" \
-               "__pycache__/*" "*.pyc" ".DS_Store" \
-               ".env" "secret/*" \
-               ".elasticbeanstalk/logs/*" ".elasticbeanstalk/app_versions/*"
-          echo "ZIP_NAME=$ZIP" >> $GITHUB_ENV
+          git archive -o app.zip HEAD
+
+        ## 만약 zip -r을 계속 쓰고 싶다면 아래처럼 제외 목록을 넓히세요.
+        ## zip -r app.zip . \
+        ##   -x ".git/*" ".github/*" ".vscode/*" "__pycache__/*" "*.pyc" \
+        ##      "notebooks/*" "source_documents/*" ".elasticbeanstalk/logs/*" ".env"
 
       - name: Deploy to Elastic Beanstalk
+        if: steps.changes.outputs.deploy == 'true'
         uses: einaregilsson/beanstalk-deploy@v21
         with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           application_name: chatbot-law
           environment_name: chatbot-law-env
           region: ap-northeast-2
-          version_label: ${{ github.run_number }}-${{ github.sha }}
-          deployment_package: ${{ env.ZIP_NAME }}   # ← ZIP 파일 전달
-          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          # 필요시 기존 버킷을 지정하고 싶으면 다음 줄 추가
-          # existing_bucket_name: elasticbeanstalk-ap-northeast-2-<ACCOUNT_ID>
+          version_label: ${{ github.run_id }}-${{ github.run_attempt }}
+          deployment_package: app.zip
