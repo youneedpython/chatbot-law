@@ -1,0 +1,59 @@
+name: Deploy to Elastic Beanstalk
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+# 동시에 두 번 이상 배포 막기
+concurrency:
+  group: eb-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        # (A) 액세스 키 방식
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+        # (B) OIDC 방식 쓸 땐 위 블록 대신 아래 주석 해제
+        # uses: aws-actions/configure-aws-credentials@v4
+        # with:
+        #   role-to-assume: arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>
+        #   aws-region: ap-northeast-2
+
+      # 선택: .dockerignore 없으면 생성해 업로드 용량 감소
+      - name: Ensure .dockerignore (optional)
+        run: |
+          if [ ! -f .dockerignore ]; then
+            cat > .dockerignore <<'EOF'
+            .git
+            .gitignore
+            .vscode
+            __pycache__/
+            *.pyc
+            .env
+            secret/
+            .elasticbeanstalk/logs/
+            .elasticbeanstalk/app_versions/
+            EOF
+          fi
+
+      # EB 배포 (Docker 플랫폼엔 소스 루트 통째로 업로드)
+      - name: Deploy to Elastic Beanstalk
+        uses: einaregilsson/beanstalk-deploy@v21
+        with:
+          application_name: chatbot-law
+          environment_name: chatbot-law-env
+          region: ap-northeast-2
+          version_label: ${{ github.run_number }}-${{ github.sha }}
+          deployment_package: .
