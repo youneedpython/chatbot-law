@@ -46,7 +46,18 @@ jobs:
             echo ".elasticbeanstalk/app_versions/" >> .dockerignore
           fi
 
-      # EB 배포 (Docker 플랫폼엔 소스 루트 통째로 업로드)
+      # ✅ 여기서 ZIP 생성 (GitHub 러너에서)
+      - name: Create application bundle (zip)
+        run: |
+          ZIP=app-${{ github.run_number }}.zip
+          # 불필요 파일/폴더 제외하고 압축
+          zip -r "$ZIP" . \
+            -x ".git/*" ".github/workflows/*" ".vscode/*" \
+               "__pycache__/*" "*.pyc" ".DS_Store" \
+               ".env" "secret/*" \
+               ".elasticbeanstalk/logs/*" ".elasticbeanstalk/app_versions/*"
+          echo "ZIP_NAME=$ZIP" >> $GITHUB_ENV
+
       - name: Deploy to Elastic Beanstalk
         uses: einaregilsson/beanstalk-deploy@v21
         with:
@@ -54,6 +65,8 @@ jobs:
           environment_name: chatbot-law-env
           region: ap-northeast-2
           version_label: ${{ github.run_number }}-${{ github.sha }}
-          deployment_package: .
+          deployment_package: ${{ env.ZIP_NAME }}   # ← ZIP 파일 전달
           aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # 필요시 기존 버킷을 지정하고 싶으면 다음 줄 추가
+          # existing_bucket_name: elasticbeanstalk-ap-northeast-2-<ACCOUNT_ID>
