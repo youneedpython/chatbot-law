@@ -90,7 +90,7 @@ GitHub `main` 브랜치에 **push → 자동 배포**되는 구조로 설계되�
 | 항목 | 값 |
 |------|------|
 | AWS Region | ap-northeast-2 (Seoul) |
-| Instance Type | t3.micro |
+| Instance Type | t3.small |
 | Platform | Docker on Amazon Linux 2023 |
 | Environment | SingleInstance (No Load Balancer) |
 | App Port | 8501 |
@@ -114,7 +114,7 @@ GitHub `main` 브랜치에 **push → 자동 배포**되는 구조로 설계되�
 
 - **License:** CC BY-NC 4.0  
 - **Maintainer:** youneedpython  
-- **Infra:** AWS Elastic Beanstalk (t3.micro)  
+- **Infra:** AWS Elastic Beanstalk (t3.small)  
 - **Auto Deployment:** GitHub Actions
 
 ---
