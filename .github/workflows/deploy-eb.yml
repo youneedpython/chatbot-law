@@ -35,17 +35,15 @@ jobs:
       - name: Ensure .dockerignore (optional)
         run: |
           if [ ! -f .dockerignore ]; then
-            cat > .dockerignore <<'EOF'
-            .git
-            .gitignore
-            .vscode
-            __pycache__/
-            *.pyc
-            .env
-            secret/
-            .elasticbeanstalk/logs/
-            .elasticbeanstalk/app_versions/
-            EOF
+            echo ".git" >> .dockerignore
+            echo ".gitignore" >> .dockerignore
+            echo ".vscode" >> .dockerignore
+            echo "__pycache__/" >> .dockerignore
+            echo "*.pyc" >> .dockerignore
+            echo ".env" >> .dockerignore
+            echo "secret/" >> .dockerignore
+            echo ".elasticbeanstalk/logs/" >> .dockerignore
+            echo ".elasticbeanstalk/app_versions/" >> .dockerignore
           fi
 
       # EB 배포 (Docker 플랫폼엔 소스 루트 통째로 업로드)
