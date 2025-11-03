@@ -98,6 +98,18 @@ GitHub `main` 브랜치에 **push → 자동 배포**되는 구조로 설계되�
 
 ---
 
+## 📘 Research & Notebooks
+
+| 파일명 | 설명 |
+|--------|------|
+| `notebooks/rag_retrieval_qa_pipeline.ipynb` | 전세사기피해 법률 문서를 기반으로 한 RAG QA 파이프라인 구현 |
+| `notebooks/rag_langserve_langsmith_integration.ipynb` | LangServe 및 LangSmith 연동 실험 (배포 모니터링 테스트) |
+
+> 💡 모든 실험은 `source_documents/` 폴더 내 문서를 사용하며,  
+> 생성된 임베딩은 Pinecone Vector Store에 저장됩니다.
+
+---
+
 ## 📄 License & Maintenance
 
 - **License:** CC BY-NC 4.0  
