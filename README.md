@@ -1,7 +1,7 @@
 ![Python](https://img.shields.io/badge/Python-3.10-blue?logo=python)
 ![AWS](https://img.shields.io/badge/AWS-ElasticBeanstalk-orange?logo=amazon-aws)
-![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey)
 ![Deploy Status](https://github.com/youneedpython/chatbot-law/actions/workflows/deploy-eb.yml/badge.svg)
+![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey)
 
 <br/><br/>
 
